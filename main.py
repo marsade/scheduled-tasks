@@ -1,38 +1,47 @@
-# To run and test the code you need to update 4 places:
-# 1. Change MY_EMAIL/MY_PASSWORD to your own details.
-# 2. Go to your email provider and make it allow less secure apps.
-# 3. Update the SMTP ADDRESS to match your email provider.
-# 4. Update birthdays.csv to contain today's month and day.
-# See the solution video in the 100 Days of Python Course for explainations.
+#!/usr/bin/env python3
+##################### Extra Hard Starting Project ######################
 
+# 1. Update the birthdays.csv
 
-from datetime import datetime
+# 2. Check if today matches a birthday in the birthdays.csv
+
+# 3. If step 2 is true, pick a random letter from letter templates and replace the [NAME] with the person's actual name from birthdays.csv
+
+# 4. Send the letter generated in step 3 to that person's email address.
+
+import datetime as dt
 import pandas
-import random
 import smtplib
-import os
+import random
 
-# import os and use it to get the Github repository secrets
-MY_EMAIL = os.environ.get("MY_EMAIL")
-MY_PASSWORD = os.environ.get("MY_PASSWORD")
 
-today = datetime.now()
-today_tuple = (today.month, today.day)
+birthdays = pandas.read_csv("birthdays.csv")
+today = dt.date.today()
 
-data = pandas.read_csv("birthdays.csv")
-birthdays_dict = {(data_row["month"], data_row["day"])                  : data_row for (index, data_row) in data.iterrows()}
-if today_tuple in birthdays_dict:
-    birthday_person = birthdays_dict[today_tuple]
-    file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
-    with open(file_path) as letter_file:
-        contents = letter_file.read()
-        contents = contents.replace("[NAME]", birthday_person["name"])
 
-    with smtplib.SMTP("YOUR EMAIL PROVIDER SMTP SERVER ADDRESS") as connection:
+def send_mail(to_email, msg):
+    mail = os.environ.get("MY_EMAIL")
+    password = os.environ.get("MY_PASSWORD")
+
+    with smtplib.SMTP("smtp.gmail.com") as connection:
         connection.starttls()
-        connection.login(MY_EMAIL, MY_PASSWORD)
+        connection.login(user=mail, password=password)
         connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday!\n\n{contents}"
+            from_addr=mail,
+            to_addrs=to_email,
+            msg=f"Subject:Happy Birthday!\n\n{msg}"
         )
+
+
+letter = ["letter_templates/letter_1.txt",
+          "letter_templates/letter_2.txt",
+          "letter_templates/letter_3.txt"]
+letter_choice = random.choice(letter)
+
+for (_, row) in birthdays.iterrows():
+    bdate = dt.date(row["year"], row["month"], row["day"])
+    if bdate == today:
+        with open(letter_choice) as f:
+            c = f.read()
+            letter = c.replace("[NAME]", row["name"])
+            send_mail(row["email"], letter)
